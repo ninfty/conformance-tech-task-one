@@ -23,6 +23,7 @@ public class SecurityConfig {
             )
             .oauth2ResourceServer(oauth2 ->
                 oauth2.opaqueToken(Customizer.withDefaults())
+                .authenticationEntryPoint(customAuthEntryPoint)
             )
             .exceptionHandling(exceptions -> exceptions
                 .authenticationEntryPoint(customAuthEntryPoint)
