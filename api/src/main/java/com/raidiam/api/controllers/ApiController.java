@@ -26,4 +26,11 @@ public class ApiController {
         );
     }
 
+    @GetMapping(value = "/health", produces = "application/json")
+    public Map<String, String> health() {
+        return Map.of(
+            "status", "Ok"
+        );
+    }
+
 }

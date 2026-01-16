@@ -23,6 +23,7 @@ public class SecurityConfig {
     SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/health").permitAll()
                 .requestMatchers("/api/now").hasAuthority("SCOPE_time")
                 .requestMatchers("/api/random").hasAuthority("SCOPE_random")
                 .anyRequest().hasAuthority("SCOPE_api")
