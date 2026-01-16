@@ -20,6 +20,8 @@ public class AuthService {
     private int port;
     private final List<String> scopes;
 
+    private static final String SUPPORTED_GRANT = "client_credentials";
+
     public enum RequestStatus {
         GRANTED,
         UNAUTHORIZED,
@@ -56,6 +58,12 @@ public class AuthService {
             accessTokenResponse.setRequestStatus(RequestStatus.BAD_REQUEST);
             return accessTokenResponse;
         }
+
+        if (!SUPPORTED_GRANT.contains(tokenRequest.getGrantType())) {
+            accessTokenResponse.setRequestStatus(RequestStatus.BAD_REQUEST);
+            return accessTokenResponse;
+        }
+
         String clientId = tokenRequest.getClientId();
         OAuthClient client = clientCache.get(clientId);
         if (client == null) {
