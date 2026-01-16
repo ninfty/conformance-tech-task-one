@@ -1,4 +1,4 @@
-package com.raidiam.api.configs;
+package com.raidiam.api.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.raidiam.api.dtos.ErrorResponse;
