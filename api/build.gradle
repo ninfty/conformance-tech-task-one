@@ -26,6 +26,7 @@ dependencies {
 
 
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testImplementation 'org.springframework.security:spring-security-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
 
@@ -38,4 +39,23 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
+}
+
+tasks.test {
+    testLogging {
+        events "passed", "skipped", "failed"
+        exceptionFormat "short"
+
+        afterSuite { desc, result ->
+            if (!desc.parent) {
+                println ""
+                println "🧪 Test Summary (API)"
+                println "----------------------------"
+                println "✅ Passed:  ${result.successfulTestCount}"
+                println "❌ Failed:  ${result.failedTestCount}"
+                println "⚠️ Skipped: ${result.skippedTestCount}"
+                println "⏱ Total:   ${result.testCount}"
+            }
+        }
+    }
 }

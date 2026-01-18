@@ -3,7 +3,7 @@
 ## 📌 Overview
 
 This project contains a simple Spring Boot API that was originally publicly accessible.
-The goal of this task was to **secure all API endpoints using OAuth 2.0**, integrating with the provided Authorization Server.
+The goal of this task was to **secure all API endpoints using OAuth2**, integrating with the provided Authorization Server.
 
 The solution uses **OAuth2 Client Credentials flow**, **opaque access tokens**, and **token introspection**.
 
@@ -24,7 +24,7 @@ Each endpoint requires a specific scope:
 
 | Endpoint           | Required Scope |
 | ------------------ | -------------- |
-| `/health`          | `-`         |
+| `/health`          | public         |
 | `/api/now`         | `time`         |
 | `/api/random`      | `random`       |
 | Others             | `api`          |
@@ -63,7 +63,7 @@ docker compose up
 http://localhost:8081
 ```
 
-You can verify it via the discovery endpoint:
+❤️ You can verify it via the discovery endpoint:
 
 ```
 http://localhost:8081/.well-known/openid-configuration
@@ -79,10 +79,18 @@ http://localhost:8081/.well-known/openid-configuration
 http://localhost:8080
 ```
 
-You can check the public health endpoint
+❤️ You can check the public health endpoint
 
 ```
 http://localhost:8080/health
+```
+
+Example response
+
+```
+{
+	"status": "Ok"
+}
 ```
 
 ---
@@ -121,6 +129,18 @@ curl -X GET http://localhost:8080/api/now \
 
 ---
 
+### 🧪 Running tests
+
+Tests are executed using a dedicated Docker Compose profile.
+
+To run the tests:
+
+```bash
+docker compose --profile test run --rm api-test
+```
+
+---
+
 ## 🔧 Security Configuration Summary
 
 * OAuth2 Resource Server with opaque tokens
@@ -134,3 +154,5 @@ curl -X GET http://localhost:8080/api/now \
 
 * The Authorization Server was **not modified**, except for minimal validation of the supported grant type
 * Scopes are enforced explicitly at the API level
+* Tests are not executed during the API image build to keep the production image lightweight.
+* The API container uses a distroless image and does not include build tools, so tests are executed in a dedicated test container.

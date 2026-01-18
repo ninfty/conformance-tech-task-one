@@ -14,3 +14,12 @@ services:
       - "8080:8080"
     depends_on:
       - authserver
+
+  api-test:
+    image: gradle:8.10-jdk17
+    working_dir: /api
+    volumes:
+      - .:/api
+    command: ./gradlew test --no-daemon --rerun-tasks
+    profiles:
+      - test
