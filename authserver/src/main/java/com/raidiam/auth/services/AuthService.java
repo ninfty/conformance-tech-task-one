@@ -15,11 +15,19 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class AuthService {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
     private int port;
     private final List<String> scopes;
 
+    // https://oauth.net/2/grant-types/
+    // authorization code = user
+    // client credentials = server-to-server
     private static final String SUPPORTED_GRANT = "client_credentials";
 
     public enum RequestStatus {
@@ -66,6 +74,11 @@ public class AuthService {
 
         String clientId = tokenRequest.getClientId();
         OAuthClient client = clientCache.get(clientId);
+
+        // log.info(clientId);
+        // log.info(client.getClientSecret());
+        // log.info(tokenRequest.getClientSecret());
+        
         if (client == null) {
             accessTokenResponse.setRequestStatus(RequestStatus.UNAUTHORIZED);
             return accessTokenResponse;
@@ -74,6 +87,14 @@ public class AuthService {
             accessTokenResponse.setRequestStatus(RequestStatus.UNAUTHORIZED);
             return accessTokenResponse;
         }
+
+        for (String requestedScope : tokenRequest.getScopes()) {
+            if (!client.getScopes().contains(requestedScope)) {
+                accessTokenResponse.setRequestStatus(RequestStatus.BAD_REQUEST);
+                return accessTokenResponse;
+            }
+        }
+
         AccessToken accessToken = new AccessToken();
         String tokenValue = RandomStringUtils.randomAlphanumeric(64);
         accessToken.setAccessToken(tokenValue);
@@ -124,12 +145,17 @@ public class AuthService {
         tokenRequest.setClientId(extract("client_id", params));
         tokenRequest.setClientSecret(extract("client_secret", params));
         tokenRequest.setGrantType(extract("grant_type", params));
-        if(params.containsKey("scope")){
-            List<String> scopesRequested = Arrays.asList(params.getFirst("scope").split(" "));
-            scopesRequested.stream()
-                    .filter(s -> scopes.contains(s))
-                    .forEach(scope -> tokenRequest.addScope(scope));
+
+        if (params.containsKey("scope")) {
+            String rawScope = params.getFirst("scope");
+
+            List<String> scopesRequested = Arrays.asList(rawScope.split(" "));
+
+            scopesRequested.forEach(scope -> {
+                tokenRequest.addScope(scope);
+            });
         }
+
         return tokenRequest;
     }
 

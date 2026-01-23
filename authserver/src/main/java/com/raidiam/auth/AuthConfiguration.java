@@ -10,8 +10,8 @@ import java.util.List;
 @Configuration
 public class AuthConfiguration {
 
-    private List<String> scopes = List.of("api", "time", "random")
-;
+    private List<String> scopes = List.of("api", "time", "random");
+    
     @Bean
     public OAuthClient client() {
         OAuthClient client = new OAuthClient();
@@ -19,6 +19,16 @@ public class AuthConfiguration {
         client.setClientSecret("abcde12345");
         client.setTokenLife(3600L);
         client.setScopes(scopes);
+        return client;
+    }
+
+    @Bean
+    public OAuthClient client2() {
+        OAuthClient client = new OAuthClient();
+        client.setClientId("client2");
+        client.setClientSecret("abcde12345");
+        client.setTokenLife(3600L);
+        client.setScopes(List.of("api"));
         return client;
     }
 
