@@ -156,3 +156,11 @@ docker compose --profile test run --rm api-test
 * Scopes are enforced explicitly at the API level
 * Tests are not executed during the API image build to keep the production image lightweight.
 * The API container uses a distroless image and does not include build tools, so tests are executed in a dedicated test container.
+
+---
+
+## ⭐ Post Submission Improvements
+
+* Implemented scope validation when generating a new token
+* New client for testing
+* GrantType enum

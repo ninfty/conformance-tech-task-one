@@ -8,6 +8,7 @@ import com.raidiam.auth.model.OAuthClient;
 import com.raidiam.auth.model.TokenRequest;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.util.MultiValueMap;
+import com.raidiam.auth.enums.GrantType;
 
 import java.time.Instant;
 import java.util.Arrays;
@@ -25,10 +26,7 @@ public class AuthService {
     private int port;
     private final List<String> scopes;
 
-    // https://oauth.net/2/grant-types/
-    // authorization code = user
-    // client credentials = server-to-server
-    private static final String SUPPORTED_GRANT = "client_credentials";
+    private static final String SUPPORTED_GRANT = GrantType.CLIENT_CREDENTIALS.toString();
 
     public enum RequestStatus {
         GRANTED,
