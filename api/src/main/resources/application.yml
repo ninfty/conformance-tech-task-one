@@ -6,10 +6,12 @@ logging:
     org.springframework.security: DEBUG
 
 spring:
+  config:
+    import: optional:file:.env[.properties]
   security:
     oauth2:
       resourceserver:
         opaque-token:
-          introspection-uri: http://authserver:8081/token/introspect
-          client-id: client1
-          client-secret: abcde12345
+          introspection-uri: ${OAUTH_INTROSPECTION_URI:http://localhost:8081/token/introspect}
+          client-id: ${OAUTH_CLIENT_ID:client1}
+          client-secret: ${OAUTH_CLIENT_SECRET:abcde12345}

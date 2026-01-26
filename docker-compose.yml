@@ -12,6 +12,10 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8080:8080"
+    env_file:
+      - /api/.env
+    environment:
+      OAUTH_INTROSPECTION_URI: http://authserver:8081/token/introspect
     depends_on:
       - authserver
 

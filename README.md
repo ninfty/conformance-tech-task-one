@@ -164,3 +164,5 @@ docker compose --profile test run --rm api-test
 * Implemented scope validation when generating a new token
 * New client for testing
 * GrantType enum
+* New docs folder (with Insomnia requests)
+* Env file for the API
