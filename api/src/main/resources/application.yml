@@ -12,6 +12,6 @@ spring:
     oauth2:
       resourceserver:
         opaque-token:
-          introspection-uri: ${OAUTH_INTROSPECTION_URI:http://localhost:8081/token/introspect}
+          introspection-uri: http://${OAUTH_HOST:localhost}:${OAUTH_PORT:8081}${OAUTH_INTROSPECTION_ENDPOINT:/token/introspect}
           client-id: ${OAUTH_CLIENT_ID:client1}
           client-secret: ${OAUTH_CLIENT_SECRET:abcde12345}
