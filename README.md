@@ -93,6 +93,14 @@ Example response
 }
 ```
 
+#### ⚙️ Configs
+
+You can copy the example env file to change default configs:
+
+```bash
+cp .env.example .env
+```
+
 ---
 
 ## 🔑 How to obtain an access token
@@ -165,4 +173,4 @@ docker compose --profile test run --rm api-test
 * New client for testing
 * GrantType enum
 * New docs folder (with Insomnia requests)
-* Env file for the API
+* Optional env file for the API

@@ -13,7 +13,8 @@ services:
     ports:
       - "8080:8080"
     env_file:
-      - /api/.env
+      - path: /api/.env
+        required: false
     environment:
       OAUTH_HOST: authserver
     depends_on:
