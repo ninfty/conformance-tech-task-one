@@ -7,7 +7,10 @@ import com.raidiam.auth.model.IntrospectionResponse;
 import com.raidiam.auth.model.OAuthClient;
 import com.raidiam.auth.model.TokenRequest;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.MultiValueMap;
+
+import com.raidiam.auth.config.OAuthProperties;
 import com.raidiam.auth.enums.GrantType;
 
 import java.time.Instant;
@@ -26,7 +29,8 @@ public class AuthService {
     private int port;
     private final List<String> scopes;
 
-    private static final String SUPPORTED_GRANT = GrantType.CLIENT_CREDENTIALS.toString();
+    @Autowired
+    private OAuthProperties oauthProperties;
 
     public enum RequestStatus {
         GRANTED,
@@ -58,6 +62,8 @@ public class AuthService {
     public AccessTokenResponse requestToken(MultiValueMap<String, String> params) {
         AccessTokenResponse accessTokenResponse = new AccessTokenResponse();
         TokenRequest tokenRequest = null;
+        GrantType grantType;
+
         try {
              tokenRequest = toTokenRequest(params);
         } catch (IllegalArgumentException ex) {
@@ -65,7 +71,13 @@ public class AuthService {
             return accessTokenResponse;
         }
 
-        if (!SUPPORTED_GRANT.contains(tokenRequest.getGrantType())) {
+        try {
+            grantType = GrantType.from(tokenRequest.getGrantType());
+
+            if (!oauthProperties.isEnabled(grantType)) {
+                throw new IllegalArgumentException();
+            }
+        } catch (IllegalArgumentException ex) {
             accessTokenResponse.setRequestStatus(RequestStatus.BAD_REQUEST);
             return accessTokenResponse;
         }
