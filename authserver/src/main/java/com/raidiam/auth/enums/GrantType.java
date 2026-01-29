@@ -21,7 +21,7 @@ public enum GrantType {
 
     public static GrantType from(String value) {
         return Arrays.stream(values())
-                .filter(g -> g.value.equals(value))
+                .filter(type -> type.value.equals(value))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Unsupported grant_type"));
     }

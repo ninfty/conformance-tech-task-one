@@ -175,3 +175,5 @@ docker compose --profile test run --rm api-test
 * New docs folder (with Insomnia requests)
 * Optional env file for the API
 * Enable/disable grant_types on the auth server
+* Deprecated method `randomAlphanumeric()` replaced by `secure().nextAlphanumeric()`
+* Scope enum

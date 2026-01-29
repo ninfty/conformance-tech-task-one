@@ -4,21 +4,22 @@ import com.raidiam.auth.model.OAuthClient;
 import com.raidiam.auth.services.AuthService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import com.raidiam.auth.enums.Scope;
 
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 
 @Configuration
 public class AuthConfiguration {
 
-    private List<String> scopes = List.of("api", "time", "random");
-    
     @Bean
     public OAuthClient client() {
         OAuthClient client = new OAuthClient();
         client.setClientId("client1");
         client.setClientSecret("abcde12345");
         client.setTokenLife(3600L);
-        client.setScopes(scopes);
+        client.setScopes(EnumSet.allOf(Scope.class));
         return client;
     }
 
@@ -28,13 +29,13 @@ public class AuthConfiguration {
         client.setClientId("client2");
         client.setClientSecret("abcde12345");
         client.setTokenLife(3600L);
-        client.setScopes(List.of("api"));
+        client.setScopes(Set.of(Scope.API));
         return client;
     }
 
     @Bean
     public AuthService authService(List<OAuthClient> clients) {
-        AuthService authService = new AuthService(clients, scopes);
+        AuthService authService = new AuthService(clients);
         return authService;
     }
 

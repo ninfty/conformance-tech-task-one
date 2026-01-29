@@ -1,12 +1,14 @@
 package com.raidiam.auth.model;
 
-import java.util.List;
+import java.util.Set;
+
+import com.raidiam.auth.enums.Scope;
 
 public class OAuthClient {
 
     private String clientId;
     private String clientSecret;
-    private List<String> scopes;
+    private Set<Scope> scopes;
     private Long tokenLife;
 
     public void setClientId(String clientId) {
@@ -25,11 +27,11 @@ public class OAuthClient {
         return clientSecret;
     }
 
-    public void setScopes(List<String> scopes) {
+    public void setScopes(Set<Scope> scopes) {
         this.scopes = scopes;
     }
 
-    public List<String> getScopes() {
+    public Set<Scope> getScopes() {
         return scopes;
     }
 

@@ -1,14 +1,16 @@
 package com.raidiam.auth.model;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.EnumSet;
+import java.util.Set;
+
+import com.raidiam.auth.enums.Scope;
 
 public class TokenRequest {
 
     private String clientId;
     private String clientSecret;
     private String grantType;
-    private List<String> scopes = new ArrayList<>();
+    private Set<Scope> scopes = EnumSet.noneOf(Scope.class);
 
     public String getClientId() {
         return clientId;
@@ -34,15 +36,15 @@ public class TokenRequest {
         this.grantType = grantType;
     }
 
-    public List<String> getScopes() {
+    public Set<Scope> getScopes() {
         return scopes;
     }
 
-    public void setScopes(List<String> scopes) {
+    public void setScopes(Set<Scope> scopes) {
         this.scopes = scopes;
     }
 
-    public void addScope(String scope) {
+    public void addScope(Scope scope) {
         scopes.add(scope);
     }
 

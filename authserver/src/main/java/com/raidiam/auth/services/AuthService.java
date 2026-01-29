@@ -12,12 +12,14 @@ import org.springframework.util.MultiValueMap;
 
 import com.raidiam.auth.config.OAuthProperties;
 import com.raidiam.auth.enums.GrantType;
+import com.raidiam.auth.enums.Scope;
 
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,7 +29,6 @@ public class AuthService {
     private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
     private int port;
-    private final List<String> scopes;
 
     @Autowired
     private OAuthProperties oauthProperties;
@@ -41,11 +42,10 @@ public class AuthService {
     private Map<String, OAuthClient> clientCache = new HashMap<>();
     private Map<String, AccessTokenInfo> accessTokenCache = new HashMap<>();
 
-    public AuthService(List<OAuthClient> clients, List<String> scopes) {
-       clients.stream().forEach(client -> {
-           clientCache.put(client.getClientId(), client);
-       });
-       this.scopes = scopes;
+    public AuthService(List<OAuthClient> clients) {
+        clients.stream().forEach(client -> {
+            clientCache.put(client.getClientId(), client);
+        });
     }
 
     public Map<String, Object> discovery() {
@@ -55,8 +55,7 @@ public class AuthService {
                 "introspection_endpoint", "http://localhost:8081/token/introspect",
                 "grant_types_supported", List.of("client_credentials"),
                 "client_authentication_methods_supported", List.of("client_secret"),
-                "scopes_supported", scopes
-        );
+                "scopes_supported", Arrays.stream(Scope.values()).map(Scope::getValue).collect(Collectors.toSet()));
     }
 
     public AccessTokenResponse requestToken(MultiValueMap<String, String> params) {
@@ -65,7 +64,7 @@ public class AuthService {
         GrantType grantType;
 
         try {
-             tokenRequest = toTokenRequest(params);
+            tokenRequest = toTokenRequest(params);
         } catch (IllegalArgumentException ex) {
             accessTokenResponse.setRequestStatus(RequestStatus.BAD_REQUEST);
             return accessTokenResponse;
@@ -88,17 +87,17 @@ public class AuthService {
         // log.info(clientId);
         // log.info(client.getClientSecret());
         // log.info(tokenRequest.getClientSecret());
-        
+
         if (client == null) {
             accessTokenResponse.setRequestStatus(RequestStatus.UNAUTHORIZED);
             return accessTokenResponse;
         }
-        if(!client.getClientSecret().equals(tokenRequest.getClientSecret())){
+        if (!client.getClientSecret().equals(tokenRequest.getClientSecret())) {
             accessTokenResponse.setRequestStatus(RequestStatus.UNAUTHORIZED);
             return accessTokenResponse;
         }
 
-        for (String requestedScope : tokenRequest.getScopes()) {
+        for (Scope requestedScope : tokenRequest.getScopes()) {
             if (!client.getScopes().contains(requestedScope)) {
                 accessTokenResponse.setRequestStatus(RequestStatus.BAD_REQUEST);
                 return accessTokenResponse;
@@ -106,19 +105,24 @@ public class AuthService {
         }
 
         AccessToken accessToken = new AccessToken();
-        String tokenValue = RandomStringUtils.randomAlphanumeric(64);
+        String tokenValue = RandomStringUtils.secure().nextAlphanumeric(64);
         accessToken.setAccessToken(tokenValue);
         accessToken.setExpiresIn(client.getTokenLife());
-        accessToken.setScope(String.join(" ", tokenRequest.getScopes()));
+
+        accessToken.setScope(
+                tokenRequest.getScopes().stream()
+                        .map(Scope::getValue)
+                        .collect(Collectors.joining(" ")));
+
         AccessTokenInfo accessTokenInfo = new AccessTokenInfo();
         accessTokenInfo.setAccessToken(accessToken);
         accessTokenInfo.setClient(client);
         accessTokenCache.put(tokenValue, accessTokenInfo);
         accessTokenResponse.setRequestStatus(RequestStatus.GRANTED);
         accessTokenResponse.setAccessToken(accessToken);
-        return  accessTokenResponse;
-    }
 
+        return accessTokenResponse;
+    }
 
     public IntrospectionResponse introspect(MultiValueMap<String, String> params) {
         IntrospectionResponse response = new IntrospectionResponse();
@@ -134,18 +138,18 @@ public class AuthService {
             Instant iat = accessTokenInfo.getIat();
             AccessToken issuedToken = accessTokenInfo.getAccessToken();
             Instant exp = iat.plusSeconds(issuedToken.getExpiresIn());
-            if(now.isAfter(exp)){
+            if (now.isAfter(exp)) {
                 response.setActive(false);
                 return response;
             }
             response.setActive(true);
             response.setClientId(accessTokenInfo.getClient().getClientId());
             response.setScope(accessTokenInfo.getAccessToken().getScope());
-            return  response;
+            return response;
 
         } catch (IllegalArgumentException e) {
             response.setActive(false);
-            return  response;
+            return response;
         }
 
     }
@@ -159,18 +163,16 @@ public class AuthService {
         if (params.containsKey("scope")) {
             String rawScope = params.getFirst("scope");
 
-            List<String> scopesRequested = Arrays.asList(rawScope.split(" "));
-
-            scopesRequested.forEach(scope -> {
-                tokenRequest.addScope(scope);
-            });
+            for (String scopeValue : rawScope.split(" ")) {
+                tokenRequest.addScope(Scope.from(scopeValue));
+            }
         }
 
         return tokenRequest;
     }
 
     private String extract(String field, MultiValueMap<String, String> params) {
-        if(!params.containsKey(field)){
+        if (!params.containsKey(field)) {
             throw new IllegalArgumentException("Missing " + field);
         }
         return params.getFirst(field);
