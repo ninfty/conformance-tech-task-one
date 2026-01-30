@@ -70,10 +70,19 @@ public class AuthService {
             accessTokenResponse.setRequestStatus(RequestStatus.UNAUTHORIZED);
             return accessTokenResponse;
         }
+
         if(!client.getClientSecret().equals(tokenRequest.getClientSecret())){
             accessTokenResponse.setRequestStatus(RequestStatus.UNAUTHORIZED);
             return accessTokenResponse;
         }
+
+        for (String requestScope : tokenRequest.getScopes()) {
+            if (!client.getScopes().contains(requestScope)) {
+                accessTokenResponse.setRequestStatus(RequestStatus.BAD_REQUEST);
+                return accessTokenResponse;
+            }
+        }
+
         AccessToken accessToken = new AccessToken();
         String tokenValue = RandomStringUtils.randomAlphanumeric(64);
         accessToken.setAccessToken(tokenValue);
@@ -124,12 +133,15 @@ public class AuthService {
         tokenRequest.setClientId(extract("client_id", params));
         tokenRequest.setClientSecret(extract("client_secret", params));
         tokenRequest.setGrantType(extract("grant_type", params));
-        if(params.containsKey("scope")){
+
+        if (params.containsKey("scope")) {
             List<String> scopesRequested = Arrays.asList(params.getFirst("scope").split(" "));
-            scopesRequested.stream()
-                    .filter(s -> scopes.contains(s))
-                    .forEach(scope -> tokenRequest.addScope(scope));
+
+            scopesRequested.forEach(scope -> {
+                tokenRequest.addScope(scope);
+            });
         }
+        
         return tokenRequest;
     }
 
