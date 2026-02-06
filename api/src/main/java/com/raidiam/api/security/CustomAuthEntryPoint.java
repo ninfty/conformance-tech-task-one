@@ -8,10 +8,15 @@ import org.springframework.http.MediaType;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.stereotype.Component;
+import org.springframework.security.oauth2.server.resource.introspection.BadOpaqueTokenException;
+import org.springframework.security.authentication.InsufficientAuthenticationException;
 
 import java.io.IOException;
 import java.time.Instant;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @Component
 public class CustomAuthEntryPoint implements AuthenticationEntryPoint {
 
@@ -28,15 +33,62 @@ public class CustomAuthEntryPoint implements AuthenticationEntryPoint {
             AuthenticationException authException
     ) throws IOException {
 
-        ErrorResponse error = new ErrorResponse(
-                "unauthorized",
-                "Invalid access token",
-                HttpServletResponse.SC_UNAUTHORIZED,
-                Instant.now()
-        );
+        ErrorResponse error;
+        int status;
 
-        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        if (hasCause(authException, AuthServerUnavailableException.class)) {
+            status = HttpServletResponse.SC_SERVICE_UNAVAILABLE;
+            error = new ErrorResponse(
+                    "auth_server_error",
+                    "Auth server may be unavailable",
+                    status,
+                    Instant.now());
+        } else if (hasCause(authException, BadOpaqueTokenException.class)) {
+            status = HttpServletResponse.SC_UNAUTHORIZED;
+            error = new ErrorResponse(
+                    "invalid_token",
+                    "Invalid or expired access token",
+                    status,
+                    Instant.now());
+        } else if (hasCause(authException, InsufficientAuthenticationException.class)) {
+            status = HttpServletResponse.SC_UNAUTHORIZED;
+            error = new ErrorResponse(
+                    "test",
+                    "Invalid or expired access token",
+                    status,
+                    Instant.now());
+        } else {
+            status = HttpServletResponse.SC_UNAUTHORIZED;
+            error = new ErrorResponse(
+                    "unauthorized",
+                    "Authentication failed",
+                    status,
+                    Instant.now());
+        }
+
+        response.setStatus(status);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         objectMapper.writeValue(response.getOutputStream(), error);
+
+        // ErrorResponse error = new ErrorResponse(
+        //         "unauthorized",
+        //         "Invalid access token",
+        //         HttpServletResponse.SC_UNAUTHORIZED,
+        //         Instant.now()
+        // );
+
+        // response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        // response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        // objectMapper.writeValue(response.getOutputStream(), error);
+    }
+
+    private boolean hasCause(Throwable ex, Class<? extends Throwable> type) {
+        while (ex != null) {
+            if (type.isInstance(ex)) {
+                return true;
+            }
+            ex = ex.getCause();
+        }
+        return false;
     }
 }
