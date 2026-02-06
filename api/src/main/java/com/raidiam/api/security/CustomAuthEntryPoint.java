@@ -69,17 +69,6 @@ public class CustomAuthEntryPoint implements AuthenticationEntryPoint {
         response.setStatus(status);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         objectMapper.writeValue(response.getOutputStream(), error);
-
-        // ErrorResponse error = new ErrorResponse(
-        //         "unauthorized",
-        //         "Invalid access token",
-        //         HttpServletResponse.SC_UNAUTHORIZED,
-        //         Instant.now()
-        // );
-
-        // response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-        // response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        // objectMapper.writeValue(response.getOutputStream(), error);
     }
 
     private boolean hasCause(Throwable ex, Class<? extends Throwable> type) {
