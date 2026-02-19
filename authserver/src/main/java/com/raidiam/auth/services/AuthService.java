@@ -19,6 +19,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -92,16 +93,15 @@ public class AuthService {
             accessTokenResponse.setRequestStatus(RequestStatus.UNAUTHORIZED);
             return accessTokenResponse;
         }
-        if (!client.getClientSecret().equals(tokenRequest.getClientSecret())) {
+
+        if (!clicentSecretIsCorrect(client, tokenRequest)) {
             accessTokenResponse.setRequestStatus(RequestStatus.UNAUTHORIZED);
             return accessTokenResponse;
         }
 
-        for (Scope requestedScope : tokenRequest.getScopes()) {
-            if (!client.getScopes().contains(requestedScope)) {
-                accessTokenResponse.setRequestStatus(RequestStatus.BAD_REQUEST);
-                return accessTokenResponse;
-            }
+        if (!clientHasScopes(tokenRequest.getScopes(), client)) {
+            accessTokenResponse.setRequestStatus(RequestStatus.BAD_REQUEST);
+            return accessTokenResponse;
         }
 
         AccessToken accessToken = new AccessToken();
@@ -130,21 +130,26 @@ public class AuthService {
         try {
             String token = extract("token", params);
             AccessTokenInfo accessTokenInfo = accessTokenCache.get(token);
+
             if (accessTokenInfo == null) {
                 response.setActive(false);
                 return response;
             }
+
             Instant now = Instant.now();
             Instant iat = accessTokenInfo.getIat();
             AccessToken issuedToken = accessTokenInfo.getAccessToken();
             Instant exp = iat.plusSeconds(issuedToken.getExpiresIn());
+
             if (now.isAfter(exp)) {
                 response.setActive(false);
                 return response;
             }
+
             response.setActive(true);
             response.setClientId(accessTokenInfo.getClient().getClientId());
             response.setScope(accessTokenInfo.getAccessToken().getScope());
+
             return response;
 
         } catch (IllegalArgumentException e) {
@@ -156,6 +161,7 @@ public class AuthService {
 
     private TokenRequest toTokenRequest(MultiValueMap<String, String> params) {
         TokenRequest tokenRequest = new TokenRequest();
+
         tokenRequest.setClientId(extract("client_id", params));
         tokenRequest.setClientSecret(extract("client_secret", params));
         tokenRequest.setGrantType(extract("grant_type", params));
@@ -175,7 +181,21 @@ public class AuthService {
         if (!params.containsKey(field)) {
             throw new IllegalArgumentException("Missing " + field);
         }
+
         return params.getFirst(field);
     }
 
+    private Boolean clientHasScopes(Set<Scope> requestScopes, OAuthClient client) {
+        for (Scope requestedScope : requestScopes) {
+            if (!client.getScopes().contains(requestedScope)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private Boolean clicentSecretIsCorrect(OAuthClient client, TokenRequest tokenRequest) {
+        return client.getClientSecret().equals(tokenRequest.getClientSecret());
+    }
 }

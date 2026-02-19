@@ -1,12 +1,15 @@
 package com.raidiam.api.security;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.client.support.BasicAuthenticationInterceptor;
 import org.springframework.security.oauth2.core.OAuth2AuthenticatedPrincipal;
 import org.springframework.security.oauth2.server.resource.introspection.OAuth2IntrospectionException;
 import org.springframework.security.oauth2.server.resource.introspection.OpaqueTokenIntrospector;
 import org.springframework.security.oauth2.server.resource.introspection.SpringOpaqueTokenIntrospector;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestOperations;
+import org.springframework.web.client.RestTemplate;
 
 @Component
 public class CustomOpaqueTokenIntrospector implements OpaqueTokenIntrospector {
@@ -18,7 +21,14 @@ public class CustomOpaqueTokenIntrospector implements OpaqueTokenIntrospector {
             @Value("${spring.security.oauth2.resourceserver.opaque-token.client-id}") String clientId,
             @Value("${spring.security.oauth2.resourceserver.opaque-token.client-secret}") String clientSecret
     ) {
-        this.delegate = new SpringOpaqueTokenIntrospector(uri, clientId, clientSecret);
+
+        RestTemplate restTemplate = new RestTemplate();
+        restTemplate.getInterceptors()
+                .add(new BasicAuthenticationInterceptor(clientId, clientSecret));
+
+        RestOperations restOperations = restTemplate;
+
+        this.delegate = new SpringOpaqueTokenIntrospector(uri, restOperations);
     }
 
     @Override
