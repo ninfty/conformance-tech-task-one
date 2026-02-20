@@ -2,7 +2,11 @@ package com.raidiam.auth.controllers;
 
 import com.raidiam.auth.model.AccessTokenResponse;
 import com.raidiam.auth.services.AuthService;
+import com.raidiam.auth.services.DiscoveryService;
+import com.raidiam.auth.services.TokenService;
 import com.raidiam.auth.model.IntrospectionResponse;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -11,12 +15,16 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
-import java.util.Map;
-
 @Controller
 public class AuthController {
 
     private AuthService authService;
+
+    @Autowired
+    private DiscoveryService discoveryService;
+
+    @Autowired
+    private TokenService tokenService;
 
     public AuthController(AuthService authService) {
         this.authService = authService;
@@ -24,7 +32,7 @@ public class AuthController {
 
     @RequestMapping("/.well-known/openid-configuration")
     public ResponseEntity<?> discovery() {
-        return ResponseEntity.ok(authService.discovery());
+        return ResponseEntity.ok(discoveryService.discovery());
     }
 
     @RequestMapping(method = RequestMethod.POST, path = "/token", produces = "application/json", consumes = {"application/x-www-form-urlencoded", "application/x-www-form-urlencoded;charset=UTF-8"})
@@ -43,9 +51,13 @@ public class AuthController {
 
     @RequestMapping(method = RequestMethod.POST, path = "/token/introspect", produces = "application/json", consumes = {"application/x-www-form-urlencoded", "application/x-www-form-urlencoded;charset=UTF-8"})
     public ResponseEntity<?> introspect(@RequestBody MultiValueMap<String, String> params) {
-        IntrospectionResponse response = authService.introspect(params);
+        try {
+            IntrospectionResponse response = tokenService.introspect(params.getFirst("token"));
 
-        return ResponseEntity.ok(response);
+            return ResponseEntity.ok(response);
+        } catch (Exception ex) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 
 

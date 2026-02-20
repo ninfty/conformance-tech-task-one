@@ -34,6 +34,9 @@ public class AuthService {
     @Autowired
     private OAuthProperties oauthProperties;
 
+    @Autowired
+    private TokenService tokenService;
+
     public enum RequestStatus {
         GRANTED,
         UNAUTHORIZED,
@@ -41,22 +44,11 @@ public class AuthService {
     }
 
     private Map<String, OAuthClient> clientCache = new HashMap<>();
-    private Map<String, AccessTokenInfo> accessTokenCache = new HashMap<>();
 
     public AuthService(List<OAuthClient> clients) {
         clients.stream().forEach(client -> {
             clientCache.put(client.getClientId(), client);
         });
-    }
-
-    public Map<String, Object> discovery() {
-        return Map.of(
-                "issuer", "http://localhost:8081",
-                "token_endpoint", "http://localhost:8081/token",
-                "introspection_endpoint", "http://localhost:8081/token/introspect",
-                "grant_types_supported", List.of("client_credentials"),
-                "client_authentication_methods_supported", List.of("client_secret"),
-                "scopes_supported", Arrays.stream(Scope.values()).map(Scope::getValue).collect(Collectors.toSet()));
     }
 
     public AccessTokenResponse requestToken(MultiValueMap<String, String> params) {
@@ -94,7 +86,7 @@ public class AuthService {
             return accessTokenResponse;
         }
 
-        if (!clicentSecretIsCorrect(client, tokenRequest)) {
+        if (!clientSecretIsCorrect(client, tokenRequest)) {
             accessTokenResponse.setRequestStatus(RequestStatus.UNAUTHORIZED);
             return accessTokenResponse;
         }
@@ -104,59 +96,12 @@ public class AuthService {
             return accessTokenResponse;
         }
 
-        AccessToken accessToken = new AccessToken();
-        String tokenValue = RandomStringUtils.secure().nextAlphanumeric(64);
-        accessToken.setAccessToken(tokenValue);
-        accessToken.setExpiresIn(client.getTokenLife());
+        AccessToken accessToken = tokenService.generateToken(client, tokenRequest.getScopes());
 
-        accessToken.setScope(
-                tokenRequest.getScopes().stream()
-                        .map(Scope::getValue)
-                        .collect(Collectors.joining(" ")));
-
-        AccessTokenInfo accessTokenInfo = new AccessTokenInfo();
-        accessTokenInfo.setAccessToken(accessToken);
-        accessTokenInfo.setClient(client);
-        accessTokenCache.put(tokenValue, accessTokenInfo);
         accessTokenResponse.setRequestStatus(RequestStatus.GRANTED);
         accessTokenResponse.setAccessToken(accessToken);
 
         return accessTokenResponse;
-    }
-
-    public IntrospectionResponse introspect(MultiValueMap<String, String> params) {
-        IntrospectionResponse response = new IntrospectionResponse();
-
-        try {
-            String token = extract("token", params);
-            AccessTokenInfo accessTokenInfo = accessTokenCache.get(token);
-
-            if (accessTokenInfo == null) {
-                response.setActive(false);
-                return response;
-            }
-
-            Instant now = Instant.now();
-            Instant iat = accessTokenInfo.getIat();
-            AccessToken issuedToken = accessTokenInfo.getAccessToken();
-            Instant exp = iat.plusSeconds(issuedToken.getExpiresIn());
-
-            if (now.isAfter(exp)) {
-                response.setActive(false);
-                return response;
-            }
-
-            response.setActive(true);
-            response.setClientId(accessTokenInfo.getClient().getClientId());
-            response.setScope(accessTokenInfo.getAccessToken().getScope());
-
-            return response;
-
-        } catch (IllegalArgumentException e) {
-            response.setActive(false);
-            return response;
-        }
-
     }
 
     private TokenRequest toTokenRequest(MultiValueMap<String, String> params) {
@@ -186,16 +131,10 @@ public class AuthService {
     }
 
     private Boolean clientHasScopes(Set<Scope> requestScopes, OAuthClient client) {
-        for (Scope requestedScope : requestScopes) {
-            if (!client.getScopes().contains(requestedScope)) {
-                return false;
-            }
-        }
-
-        return true;
+        return client.getScopes().containsAll(requestScopes);
     }
 
-    private Boolean clicentSecretIsCorrect(OAuthClient client, TokenRequest tokenRequest) {
+    private Boolean clientSecretIsCorrect(OAuthClient client, TokenRequest tokenRequest) {
         return client.getClientSecret().equals(tokenRequest.getClientSecret());
     }
 }
