@@ -32,11 +32,4 @@ public class AuthConfiguration {
         client.setScopes(Set.of(Scope.API));
         return client;
     }
-
-    @Bean
-    public AuthService authService(List<OAuthClient> clients) {
-        AuthService authService = new AuthService(clients);
-        return authService;
-    }
-
 }

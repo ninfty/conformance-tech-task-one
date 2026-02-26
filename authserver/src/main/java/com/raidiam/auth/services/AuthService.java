@@ -8,6 +8,7 @@ import com.raidiam.auth.model.OAuthClient;
 import com.raidiam.auth.model.TokenRequest;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 import org.springframework.util.MultiValueMap;
 
 import com.raidiam.auth.config.OAuthProperties;
@@ -25,6 +26,7 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Service
 public class AuthService {
 
     private static final Logger log = LoggerFactory.getLogger(AuthService.class);
@@ -37,18 +39,13 @@ public class AuthService {
     @Autowired
     private TokenService tokenService;
 
+    @Autowired
+    private ClientService clientService;
+
     public enum RequestStatus {
         GRANTED,
         UNAUTHORIZED,
         BAD_REQUEST,
-    }
-
-    private Map<String, OAuthClient> clientCache = new HashMap<>();
-
-    public AuthService(List<OAuthClient> clients) {
-        clients.stream().forEach(client -> {
-            clientCache.put(client.getClientId(), client);
-        });
     }
 
     public AccessTokenResponse requestToken(MultiValueMap<String, String> params) {
@@ -75,33 +72,31 @@ public class AuthService {
         }
 
         String clientId = tokenRequest.getClientId();
-        OAuthClient client = clientCache.get(clientId);
+        // OAuthClient client = clientCache.get(clientId);
 
         // log.info(clientId);
         // log.info(client.getClientSecret());
         // log.info(tokenRequest.getClientSecret());
 
-        if (client == null) {
+        try {
+            OAuthClient client = clientService.authenticate(clientId, tokenRequest.getClientSecret());
+
+            
+            if (!clientHasScopes(tokenRequest.getScopes(), client)) {
+                accessTokenResponse.setRequestStatus(RequestStatus.BAD_REQUEST);
+                return accessTokenResponse;
+            }
+
+            AccessToken accessToken = tokenService.generateToken(client, tokenRequest.getScopes());
+
+            accessTokenResponse.setRequestStatus(RequestStatus.GRANTED);
+            accessTokenResponse.setAccessToken(accessToken);
+
+            return accessTokenResponse;
+        } catch (Exception e) {
             accessTokenResponse.setRequestStatus(RequestStatus.UNAUTHORIZED);
             return accessTokenResponse;
         }
-
-        if (!clientSecretIsCorrect(client, tokenRequest)) {
-            accessTokenResponse.setRequestStatus(RequestStatus.UNAUTHORIZED);
-            return accessTokenResponse;
-        }
-
-        if (!clientHasScopes(tokenRequest.getScopes(), client)) {
-            accessTokenResponse.setRequestStatus(RequestStatus.BAD_REQUEST);
-            return accessTokenResponse;
-        }
-
-        AccessToken accessToken = tokenService.generateToken(client, tokenRequest.getScopes());
-
-        accessTokenResponse.setRequestStatus(RequestStatus.GRANTED);
-        accessTokenResponse.setAccessToken(accessToken);
-
-        return accessTokenResponse;
     }
 
     private TokenRequest toTokenRequest(MultiValueMap<String, String> params) {
@@ -132,9 +127,5 @@ public class AuthService {
 
     private Boolean clientHasScopes(Set<Scope> requestScopes, OAuthClient client) {
         return client.getScopes().containsAll(requestScopes);
-    }
-
-    private Boolean clientSecretIsCorrect(OAuthClient client, TokenRequest tokenRequest) {
-        return client.getClientSecret().equals(tokenRequest.getClientSecret());
     }
 }
